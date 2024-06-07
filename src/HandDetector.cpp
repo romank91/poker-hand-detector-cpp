@@ -26,6 +26,11 @@ void HandDetector::loadClassesFromFile()
             
         inputFile.close();
     }
+    else
+    {
+        // TODO: handle invalid file 
+        std::cout << "Could not open file\n";
+    }
 }
 
 void HandDetector::loadOnnxNetwork(const bool cudaEnabled)
@@ -46,7 +51,7 @@ void HandDetector::loadOnnxNetwork(const bool cudaEnabled)
     }
 }
 
-cv::Mat HandDetector::formatYOLOv5(const cv::Mat &source) {
+cv::Mat HandDetector::resizeFrame(const cv::Mat &source) {
     int32_t col = source.cols;
     int32_t row = source.rows;
     int32_t _max = MAX(col, row);
@@ -60,7 +65,7 @@ cv::Mat HandDetector::formatYOLOv5(const cv::Mat &source) {
 void HandDetector::init()
 {
     loadClassesFromFile();
-    loadOnnxNetwork(false);     
+    loadOnnxNetwork();     
 }
 
 void HandDetector::handDetectorWorker(FrameQueue &frameQueue)
@@ -69,11 +74,13 @@ void HandDetector::handDetectorWorker(FrameQueue &frameQueue)
 
     while (true)
     {
+        // Process oldest frame in queue
         if (!frameQueue.raw.empty())
         {
             frame = frameQueue.raw.front();
             std::vector<Detection> output = runInference(frame);
 
+            // Alter frame by bounding boxes and text
             for (const Detection &detection : output)
             {
                 cv::rectangle(frame, detection.box, detection.color, 3);
@@ -103,7 +110,7 @@ void HandDetector::handDetectorWorker(FrameQueue &frameQueue)
 std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
 {
     cv::Mat blob;
-    auto modelInput = formatYOLOv5(image);
+    auto modelInput = resizeFrame(image);
     
     cv::dnn::blobFromImage(modelInput, blob, 1.0/255.0, cv::Size(INPUT_WIDTH, INPUT_HEIGHT), cv::Scalar(), true, false);
     neuralNet.setInput(blob);

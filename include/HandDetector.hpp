@@ -13,8 +13,8 @@ constexpr static float SCORE_THRESHOLD = 0.2;
 constexpr static float NMS_THRESHOLD = 0.4;
 constexpr static float CONFIDENCE_THRESHOLD = 0.5;
 
-constexpr static auto MODEL_PATH = "/home/dimitri/Projects/poker-hand-detector-cpp/app/playingCards.onnx";
-constexpr static auto CLASSES_PATH = "/home/dimitri/Projects/poker-hand-detector-cpp/models/Classes.txt";
+constexpr static auto MODEL_PATH = "../../app/playingCards.onnx";
+constexpr static auto CLASSES_PATH = "../../models/Classes.txt";
 
 struct Detection
 {
@@ -36,8 +36,8 @@ class HandDetector
     private:
         void init();
         void loadClassesFromFile();
-        void loadOnnxNetwork(const bool cudaEnabled);
-        cv::Mat formatYOLOv5(const cv::Mat &source);
+        void loadOnnxNetwork(const bool cudaEnabled = false);
+        cv::Mat resizeFrame(const cv::Mat &source);
         std::vector<Detection> runInference(const cv::Mat &image);
 
         std::string classesPath;

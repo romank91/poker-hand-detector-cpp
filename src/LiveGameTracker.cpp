@@ -1,54 +1,41 @@
-#include "LiveGameTracker.hpp"
 #include <thread>
+#include "LiveGameTracker.hpp"
 
-// void LiveGameTracker::videoFeedWorker()
-// {
-//     while (true)
-//     {
-//         cv::Mat frame = frameQueue.front();
-//         cv::imshow("Live", frame);
-        
-//         if (cv::waitKey(5) >= 0)
-//         {
-//             break;
-//         }
 
-//         frameQueue.pop()
-//     }
-// }
+LiveGameTracker::LiveGameTracker(const uint32_t devID) 
+{
+    // Init camera
+    camera_.init(devID);
+}
 
 void LiveGameTracker::run()
 {
-    // Start capture in a new thread
+    // TODO: replace threads by jthreads
+    // Start threads
     auto captureThread = std::thread(&Camera::captureWorker, camera_, std::ref(frameQueue));
-
-    // Start hand detector in a new thread
     auto handDetectorThread = std::thread(&HandDetector::handDetectorWorker, handDetector_, std::ref(frameQueue));
 
+    // Process frame queue
     cv::Mat frame;
 
     while (true)
     {
+        // Show oldest annotated frame in queue
         if (!frameQueue.processed.empty())
         {
             frame = frameQueue.processed.front();
             cv::imshow("Live", frame);
             frameQueue.processed.pop();
         }
-        
+
+        // TODO: Add functionality to exit loop
         if (cv::waitKey(5) >= 0)
         {
             break;
         }
     }
 
-    if (captureThread.joinable())
-    {
-        captureThread.join();
-    }
-
-    if (handDetectorThread.joinable())
-    {
-        handDetectorThread.join();
-    }   
+    // Join threads
+    if (captureThread.joinable()) captureThread.join();
+    if (handDetectorThread.joinable()) handDetectorThread.join();
 }

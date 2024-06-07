@@ -6,10 +6,13 @@
 
 int main(int argc, char** argv)
 {
- 
-    auto liveGameTracker = LiveGameTracker();
+    uint32_t deviceID;
+    std::cout << "Please enter video device ID: ";
+    std::cin >> deviceID;
+
+    auto liveGameTracker = LiveGameTracker(deviceID);
     liveGameTracker.run();
 
-    std::cout << "Finishing" << std::endl;
+    std::cout << "Finishing...\n";
     return 0;
 }

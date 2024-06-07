@@ -7,11 +7,10 @@
 class LiveGameTracker
 {
     public:
-        LiveGameTracker() = default;
+        LiveGameTracker(const uint32_t devID);
         ~LiveGameTracker() = default;
 
         void run();
-        void videoFeedWorker();
 
     private:
         Camera camera_;

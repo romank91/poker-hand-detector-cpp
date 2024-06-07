@@ -6,18 +6,16 @@
 #include "helperClasses.hpp"
 
 constexpr static auto API_ID = cv::CAP_ANY;     // 0 = autodetect default API
-constexpr static auto CAMERA_DEVICE_ID = 0;
 
 class Camera 
 {
     public:
-        Camera();
+        Camera() = default;
         ~Camera() = default;
 
+        bool init(const uint32_t devID);
         void captureWorker(FrameQueue &frameQueue);
 
     private:
-        bool init();
-
         cv::VideoCapture cap;       
 };
