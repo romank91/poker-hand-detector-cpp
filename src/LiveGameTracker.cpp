@@ -1,11 +1,31 @@
 #include <thread>
 #include "LiveGameTracker.hpp"
+#include <yaml-cpp/yaml.h>
 
-
-LiveGameTracker::LiveGameTracker(const uint32_t devID) 
+LiveGameTracker::LiveGameTracker()
 {
-    // Init camera
-    camera_.init(devID);
+    init();
+}
+
+void LiveGameTracker::init()
+{
+    loadConfig();
+    camera_.init();
+}
+
+void LiveGameTracker::loadConfig()
+{
+    YAML::Node config = YAML::LoadFile("../../utils/config.yaml");
+
+    config_->cuda_enabled = config["yolo"]["cuda_enabled"].as<bool>();
+    config_->inputWidth = config["yolo"]["input_width"].as<uint32_t>();
+    config_->inputHeight = config["yolo"]["input_height"].as<uint32_t>();
+    config_->scoreThreshold = config["yolo"]["score_threshold"].as<float>();
+    config_->nmsThreshold = config["yolo"]["nms_threshold"].as<float>();
+    config_->confidenceThreshold = config["yolo"]["confidence_threshold"].as<float>();
+
+    camera_.setConfig(config_);
+    handDetector_.setConfig(config_);
 }
 
 void LiveGameTracker::run()
@@ -21,8 +41,7 @@ void LiveGameTracker::run()
     while (true)
     {
         // Show oldest annotated frame in queue
-        if (!frameQueue.processed.empty())
-        {
+        if (!frameQueue.processed.empty())        {
             frame = frameQueue.processed.front();
             cv::imshow("Live", frame);
             frameQueue.processed.pop();

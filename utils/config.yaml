@@ -1,0 +1,7 @@
+yolo:
+  cuda_enabled: False
+  input_width: 640
+  input_height: 640
+  score_threshold: 0.2
+  nms_threshold: 0.4
+  confidence_threshold: 0.5

@@ -33,19 +33,19 @@ void HandDetector::loadClassesFromFile()
     }
 }
 
-void HandDetector::loadOnnxNetwork(const bool cudaEnabled)
+void HandDetector::loadOnnxNetwork()
 {
     neuralNet = cv::dnn::readNetFromONNX(MODEL_PATH);
 
-    if (cudaEnabled)
+    if (config_->cuda_enabled)
     {
-        std::cout << "\nRunning on CUDA" << std::endl;
+        std::cout << "Running on CUDA\n";
         neuralNet.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         neuralNet.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
     }
     else
     {
-        std::cout << "\nRunning on CPU" << std::endl;
+        std::cout << "Running on CPU\n";
         neuralNet.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         neuralNet.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
     }
@@ -78,7 +78,8 @@ void HandDetector::handDetectorWorker(FrameQueue &frameQueue)
         if (!frameQueue.raw.empty())
         {
             frame = frameQueue.raw.front();
-            std::vector<Detection> output = runInference(frame);
+            std::vector<Detection> output;
+            runInference(frame, output);
 
             // Alter frame by bounding boxes and text
             for (const Detection &detection : output)
@@ -107,12 +108,12 @@ void HandDetector::handDetectorWorker(FrameQueue &frameQueue)
     }
 }
 
-std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
+void HandDetector::runInference(const cv::Mat &image, std::vector<Detection> &detections)
 {
     cv::Mat blob;
     auto modelInput = resizeFrame(image);
     
-    cv::dnn::blobFromImage(modelInput, blob, 1.0/255.0, cv::Size(INPUT_WIDTH, INPUT_HEIGHT), cv::Scalar(), true, false);
+    cv::dnn::blobFromImage(modelInput, blob, 1.0/255.0, cv::Size(config_->inputWidth, config_->inputHeight), cv::Scalar(), true, false);
     neuralNet.setInput(blob);
 
     std::vector<cv::Mat> outputs;
@@ -136,8 +137,8 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
     }
     float *data = (float *)outputs[0].data;
 
-    float xFactor = modelInput.cols / INPUT_WIDTH;
-    float yFactor = modelInput.rows / INPUT_HEIGHT;
+    float xFactor = modelInput.cols / config_->inputWidth;
+    float yFactor = modelInput.rows / config_->inputHeight;
 
     std::vector<int32_t> class_ids;
     std::vector<float> confidences;
@@ -155,7 +156,7 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
 
             minMaxLoc(scores, 0, &maxClassScore, 0, &class_id);
 
-            if (maxClassScore > SCORE_THRESHOLD)
+            if (maxClassScore > config_->scoreThreshold)
             {
                 confidences.push_back(maxClassScore);
                 class_ids.push_back(class_id.x);
@@ -178,7 +179,7 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
         {
             float confidence = data[4];
 
-            if (confidence >= CONFIDENCE_THRESHOLD)
+            if (confidence >= config_->confidenceThreshold)
             {
                 float *classes_scores = data + 5;
 
@@ -188,7 +189,7 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
 
                 minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
 
-                if (max_class_score > SCORE_THRESHOLD)
+                if (max_class_score > config_->scoreThreshold)
                 {
                     confidences.push_back(confidence);
                     class_ids.push_back(class_id.x);
@@ -213,8 +214,7 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
     }
 
     std::vector<int> nms_result;
-    cv::dnn::NMSBoxes(boxes, confidences, SCORE_THRESHOLD, NMS_THRESHOLD, nms_result);
-    std::vector<Detection> detections{};
+    cv::dnn::NMSBoxes(boxes, confidences, config_->scoreThreshold, config_->nmsThreshold, nms_result);
 
     for (unsigned long i = 0; i < nms_result.size(); ++i)
     {
@@ -236,6 +236,4 @@ std::vector<Detection> HandDetector::runInference(const cv::Mat &image)
 
         detections.push_back(result);
     }
-
-    return detections;
 }

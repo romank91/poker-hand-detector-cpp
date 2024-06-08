@@ -4,6 +4,7 @@
 #include <chrono>
 #include <opencv2/highgui.hpp>
 
+
 void Camera::captureWorker(FrameQueue &frameQueue)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -42,17 +43,18 @@ void Camera::captureWorker(FrameQueue &frameQueue)
     }
 }
 
-bool Camera::init(const uint32_t devID)
-{
-    cap.open(devID, API_ID);
+void Camera::init()
+{ 
+    while (!cap.isOpened()) 
+    { 
+        std::cout << "Please enter video device ID: ";
+        std::cin >> deviceID;
 
-    if (!cap.isOpened()) 
-    {
-        std::cerr << "ERROR! Unable to open camera\n";
-        return false;
+        cap.open(deviceID, API_ID);
+
+        if (!cap.isOpened()) std::cerr << "ERROR! Unable to open camera\n";
+        else break;   
     }
-    
-    return true;
 }
 
 
