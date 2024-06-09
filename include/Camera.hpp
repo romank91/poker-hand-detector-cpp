@@ -22,11 +22,10 @@ class Camera
             config_ = config;
         }
 
-
     private:
         std::shared_ptr<Config> config_{std::make_shared<Config>()};
-        uint32_t deviceID;
-        cv::VideoCapture cap;    
+        uint32_t deviceID_;
+        cv::VideoCapture cap_;    
 
          
 };

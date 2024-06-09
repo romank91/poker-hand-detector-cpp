@@ -1,8 +1,6 @@
-
-
-#include "LiveGameTracker.hpp"
 #include <iostream>
 #include <string>
+#include "LiveGameTracker.hpp"
 
 int main(int argc, char** argv)
 {

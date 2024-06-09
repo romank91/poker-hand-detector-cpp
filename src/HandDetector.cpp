@@ -6,14 +6,10 @@
 #include <cstdint>
 #include <opencv2/opencv.hpp>
 
-HandDetector::HandDetector()
-{
-    init();
-}
-
 void HandDetector::loadClassesFromFile()
 {
-    std::ifstream inputFile(CLASSES_PATH);
+    const std::filesystem::path inputPath = config_->rootPath / std::filesystem::path("models/Classes.txt");
+    std::ifstream inputFile(inputPath);
 
     if (inputFile.is_open())
     {
@@ -21,7 +17,7 @@ void HandDetector::loadClassesFromFile()
 
         while (std::getline(inputFile, classLine))
         {
-            classes.push_back(classLine);
+            classes_.push_back(classLine);
         }
             
         inputFile.close();
@@ -35,19 +31,20 @@ void HandDetector::loadClassesFromFile()
 
 void HandDetector::loadOnnxNetwork()
 {
-    neuralNet = cv::dnn::readNetFromONNX(MODEL_PATH);
+    const std::filesystem::path modelPath = config_->rootPath / std::filesystem::path("app/playingCards.onnx");
+    neuralNet_ = cv::dnn::readNetFromONNX(modelPath);
 
     if (config_->cuda_enabled)
     {
         std::cout << "Running on CUDA\n";
-        neuralNet.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-        neuralNet.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
+        neuralNet_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        neuralNet_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
     }
     else
     {
         std::cout << "Running on CPU\n";
-        neuralNet.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-        neuralNet.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+        neuralNet_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        neuralNet_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
     }
 }
 
@@ -114,10 +111,10 @@ void HandDetector::runInference(const cv::Mat &image, std::vector<Detection> &de
     auto modelInput = resizeFrame(image);
     
     cv::dnn::blobFromImage(modelInput, blob, 1.0/255.0, cv::Size(config_->inputWidth, config_->inputHeight), cv::Scalar(), true, false);
-    neuralNet.setInput(blob);
+    neuralNet_.setInput(blob);
 
     std::vector<cv::Mat> outputs;
-    neuralNet.forward(outputs, neuralNet.getUnconnectedOutLayersNames());
+    neuralNet_.forward(outputs, neuralNet_.getUnconnectedOutLayersNames());
 
     int32_t rows = outputs[0].size[1];
     int32_t dimensions = outputs[0].size[2];
@@ -150,7 +147,7 @@ void HandDetector::runInference(const cv::Mat &image, std::vector<Detection> &de
         {
             float *classes_scores = data + 4;
 
-            cv::Mat scores(1, classes.size(), CV_32FC1, classes_scores);
+            cv::Mat scores(1, classes_.size(), CV_32FC1, classes_scores);
             cv::Point class_id;
             double maxClassScore;
 
@@ -183,7 +180,7 @@ void HandDetector::runInference(const cv::Mat &image, std::vector<Detection> &de
             {
                 float *classes_scores = data + 5;
 
-                cv::Mat scores(1, classes.size(), CV_32FC1, classes_scores);
+                cv::Mat scores(1, classes_.size(), CV_32FC1, classes_scores);
                 cv::Point class_id;
                 double max_class_score;
 
@@ -223,7 +220,7 @@ void HandDetector::runInference(const cv::Mat &image, std::vector<Detection> &de
         Detection result;
         result.classID = class_ids[idx];
         result.confidence = confidences[idx];
-        result.className = classes[result.classID];
+        result.className = classes_[result.classID];
 
         static std::random_device rd;
         std::mt19937 gen(rd());

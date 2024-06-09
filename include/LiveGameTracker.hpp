@@ -10,14 +10,16 @@ class LiveGameTracker
     public:
         LiveGameTracker();
         ~LiveGameTracker() = default;
-
-        void init();
-        void loadConfig();
+        
         void run();
 
     private:
+        void init();
+        void loadConfig();
+        void setRootPath();
+
         std::shared_ptr<Config> config_{std::make_shared<Config>()};
         Camera camera_;
         HandDetector handDetector_;
-        FrameQueue frameQueue; 
+        FrameQueue frameQueue_; 
 };
